@@ -1,95 +1,73 @@
-const express = require('express'),
-http = require('http'),
-app = express(),
-server = http.createServer(app),
-io = require('socket.io').listen(server);
+const express = require("express"),
+  http = require("http"),
+  app = express(),
+  server = http.createServer(app),
+  io = require("socket.io").listen(server);
 
 const port = process.env.PORT || 8080;
-app.get('/', (req, res) => {
-
-res.send('Chat Server is running on port 8080')
+app.get("/", (req, res) => {
+  res.send("Chat Server is running on port 8080");
 });
-io.on('connection', (socket) => {
 
+io.on("connection", socket => {
+  console.log("user connected");
 
+  socket.on("join", function(userNickname) {
+    console.log(userNickname + " : has joined the chat ");
 
-console.log('user connected')
+    socket.broadcast.emit("userjoinedthechat",{
+      message: (userNickname + " : has joined the chat ")
+    });
+  });
 
-socket.on('join', function(userNickname) {
+  socket.on("joinroom", function(roomid, userNickname) {
+    console.log(`@${roomid} ` + userNickname + " : has joined the chat ");
+    socket.join(roomid)
+    socket.broadcast
+      .to(roomid)
+      .emit("userjoinedthechat",{
+        message: (userNickname + " : has joined the chat ")
+      });
+  });
 
-        console.log(userNickname +" : has joined the chat "  );
+  socket.on("messagedetection", (senderNickname, messageContent) => {
+    //log the message in console
 
-        socket.broadcast.emit({"message":('userjoinedthechat',userNickname +" : has joined the chat ")});
+    console.log(senderNickname + " : " + messageContent);
 
-        
-    })
+    //create a message object
 
-socket.on('joinroom', function(roomid,userNickname) {
+    let message = { message: messageContent, senderNickname: senderNickname };
 
-        console.log(`@${roomid} ` + userNickname +" : has joined the chat "  );
+    // send the message to all users including the sender  using io.emit()
 
-        socket.broadcast.to(roomid).emit({message: ('userjoinedthechat',userNickname +" : has joined the chat ")});
+    io.emit("message", message);
+  });
 
-        
-    })
+  socket.on(
+    "messagedetectionroom",
+    (roomid, senderNickname, messageContent) => {
+      //log the message in console
 
-socket.on('messagedetection', (senderNickname,messageContent) => {
+      console.log("@" + roomid + " " + senderNickname + " : " + messageContent);
 
-       //log the message in console 
+      //create a message object
 
-       console.log(senderNickname+" : " +messageContent)
+      let message = { message: messageContent, senderNickname: senderNickname };
 
-      //create a message object 
+      // send the message to all users including the sender  using io.emit()
 
-      let  message = {"message":messageContent, "senderNickname":senderNickname}
+      io.to(roomid).emit("message", message);
+    }
+  );
 
-       // send the message to all users including the sender  using io.emit() 
+  socket.on("disconnect", function(userNickname) {
+    console.log(userNickname + " has left ");
 
-      io.emit('message', message )
+    socket.broadcast.emit("userdisconnect", " user has left");
+  });
+});
 
-      })
-
-
-
-socket.on('messagedetectionroom', (roomid,senderNickname,messageContent) => {
-
-        //log the message in console 
- 
-        console.log("@" + roomid + " " + senderNickname+" : " +messageContent)
- 
-       //create a message object 
- 
-       let  message = {"message":messageContent, "senderNickname":senderNickname}
- 
-        // send the message to all users including the sender  using io.emit() 
- 
-       io.to(roomid).emit('message', message )
- 
-       })
-
-socket.on('disconnect', function(userNickname) {
-
-        console.log(userNickname +' has left ')
-
-        socket.broadcast.emit( "userdisconnect" ,' user has left')
-
-
-
-
-    })
-
-
-
-
-})
-
-
-
-
-
-
-server.listen(port,()=>{
-
-console.log('Node app is running on port ' + port)
-
-})
+server.listen(port, () => {
+  console.log("Node app is running on port " + port);
+});
