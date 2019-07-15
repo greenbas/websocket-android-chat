@@ -19,9 +19,19 @@ socket.on('join', function(userNickname) {
 
         console.log(userNickname +" : has joined the chat "  );
 
-        socket.broadcast.emit('userjoinedthechat',userNickname +" : has joined the chat ");
+        socket.broadcast.emit({"message":('userjoinedthechat',userNickname +" : has joined the chat ")});
+
+        
     })
 
+socket.on('joinroom', function(roomid,userNickname) {
+
+        console.log(`@${roomid} ` + userNickname +" : has joined the chat "  );
+
+        socket.broadcast.to(roomid).emit({message: ('userjoinedthechat',userNickname +" : has joined the chat ")});
+
+        
+    })
 
 socket.on('messagedetection', (senderNickname,messageContent) => {
 
@@ -38,6 +48,24 @@ socket.on('messagedetection', (senderNickname,messageContent) => {
       io.emit('message', message )
 
       })
+
+
+
+socket.on('messagedetectionroom', (roomid,senderNickname,messageContent) => {
+
+        //log the message in console 
+ 
+        console.log("@" + roomid + " " + senderNickname+" : " +messageContent)
+ 
+       //create a message object 
+ 
+       let  message = {"message":messageContent, "senderNickname":senderNickname}
+ 
+        // send the message to all users including the sender  using io.emit() 
+ 
+       io.to(roomid).emit('message', message )
+ 
+       })
 
 socket.on('disconnect', function(userNickname) {
 
